@@ -1,47 +1,50 @@
 #pip install pulp
-from pulp import LpProblem, LpMaximize, LpVariable, LpStatus, lpSum
+from collections import defaultdict
 
-class min_power:
 
-    def __init__(self,stations, r,k):
+class minimize():
+    def __init__ (self, stations, r, k) -> None:
         self.stations = stations
         self.r = r
         self.k = k
-
-    def find_power(self,stations,r):
-        power=[]
-        for index,station in enumerate(stations):
-            temp=[stations[index+i] for i in range(-r,r+1) if index+i<len(stations) and index+i>=0]
-            power.append(sum(temp))
-            
-        return power
     
-    def optimize(self,stations,r,k):
-        model= LpProblem(name="min_power", sense=LpMaximize)
-        problem_list=[]
-        for i in range(len(stations)):
-            x=LpVariable(name=f"problem_{i}", lowBound=0, upBound=1, cat="Integer")
-            x.setInitialValue(0)
-            problem_list.append(x)
-        
-        #define objective function as the minimum value in power list
-        stations=[stations[i]+problem_list[i].varValue for i in range(len(stations))]
-        power=self.find_power(stations,r)
-        model += lpSum(min(power))
+    def check(self,stations,r,k,mid)-> bool:
+        sliding_window= sum(stations[:2*r]) 
+        hashmap= defaultdict(int)
+        index=r
+        while index< len(stations)-r:
+            sliding_window+= stations[index+r]
+            if sliding_window<mid:
+                diff= abs(sliding_window-mid)
+                if diff>k:
+                    return False
+                else:
+                    sliding_window+=diff
+                    hashmap[index+r]=diff
+                    k-=diff
+            sliding_window-= (stations[index-r]+hashmap[index-r])
+            index+=1
+        return True
 
-        #define constraints
-        model+=lpSum(problem_list)==k
-        #non negative constraint
-        for i in range(len(stations)):
-            model+=problem_list[i]>=0
-        #solve
-        status = model.solve()
-        print(LpStatus[status])
-
-
+    def solve(self, stations, r,k) -> int:
+        min_sol= min(stations)
+        max_sol= sum(stations)+k
+        #add 0's to the beginning and end of the list
+        stations=[0]*r+stations+[0]*r
+        result=min_sol
+        while min_sol<=max_sol:
+            mid=(min_sol+max_sol)//2
+            if self.check(stations,r,k,mid):
+                result= mid
+                min_sol=mid+1
+            else:
+                max_sol=mid-1
+        return result
+    
 if __name__ == "__main__":
-    stations=[1,2,3,4,5,6,7,8,9,10]
-    r=2
-    k=3
-    min_power= min_power(stations,r,k)
-    min_power.optimize(stations,r,k)
+    stations=[4,2]
+    r=1
+    k=1
+    min_power= minimize(stations,r,k)
+    result= min_power.solve(stations,r,k)
+    print(result)
