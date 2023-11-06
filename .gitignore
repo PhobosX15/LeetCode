@@ -1,1 +1,3 @@
 .conda
+.vscode/settings.json
+__pycache__/Cafeteria.cpython-310.pyc
